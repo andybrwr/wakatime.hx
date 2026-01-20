@@ -25,10 +25,6 @@
                            [else (loop rest)]))))])
     (~> content (split-many "\n") (loop))))
 
-(define (with-stdout-piped c)
-  (set-piped-stdout! c)
-  c)
-
 (define *last-heartbeat-time* None)
 (define *last-heartbeat-file* "")
 
@@ -68,9 +64,10 @@
 ; updates should be sent when the file is modified, changed, or saved.
 
 (define (heartbeat-off-thread is-file-saved?)
-  (if (should-send-file? (cx->current-file) is-file-saved?)
-      (spawn-native-thread (hx.block-on-task (lambda ()
-                                               (send-heartbeat (cx->current-file) is-file-saved?))))))
+  (let ([filename (cx->current-file)])
+    (if (and [string? filename] [should-send-file? filename is-file-saved?])
+        (spawn-native-thread (hx.block-on-task (lambda ()
+                                                 (send-heartbeat filename is-file-saved?)))))))
 
 (provide register-wakatime)
 (define (register-wakatime)
